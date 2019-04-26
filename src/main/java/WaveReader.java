@@ -1,5 +1,6 @@
 import org.apache.commons.lang3.ArrayUtils;
 
+import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +12,7 @@ public class WaveReader {
     // The range of 24 bit signed integers is −8,388,608 to 8,388,607
     private final static int INT24MAX_VALUE = 8388607;
 
-    public WaveFile readWaveFile(String filename) throws IOException {
+    public WaveFile readWaveFile(String filename) throws IOException, UnsupportedAudioFileException {
         // TODO: Add file exists/is wav checks
 
         WaveFile waveFile = new WaveFile(filename);
@@ -19,6 +20,7 @@ public class WaveReader {
 
         int bytesLeft = inputStream.available();
 
+        // Read RIFF header
         bytesLeft -= readRIFFHeader(waveFile, inputStream);
 
         // Loop over headers
@@ -39,6 +41,9 @@ public class WaveReader {
                 byte[] headerBytes = new byte[chunkSize];
                 bytesLeft -= inputStream.read(headerBytes);
                 readFmtHeader(waveFile, headerBytes);
+                if (waveFile.channels > 2) {
+                    throw new UnsupportedAudioFileException();
+                }
             } else if (headerName.equals("data")) {
                 waveFile.sampleCount = chunkSize/waveFile.blockAlign;
                 bytesLeft -=readAudioData(waveFile, inputStream);
@@ -50,10 +55,6 @@ public class WaveReader {
         } while(bytesLeft > 0);
 
         return waveFile;
-    }
-
-    public void generateJsonMetadata(WaveFile wavfile) {
-
     }
 
     private int readRIFFHeader(WaveFile waveFile, InputStream inputStream) throws IOException {
@@ -78,7 +79,7 @@ public class WaveReader {
         return bytesRead;
     }
 
-    private void readFmtHeader(WaveFile waveFile, byte[] bytes) {
+    private void readFmtHeader(WaveFile waveFile, byte[] bytes) throws UnsupportedAudioFileException {
         ByteBuffer bb = ByteBuffer.wrap(bytes);
         bb.order(waveFile.getByteOrder());
         waveFile.audioFormat = bb.getShort(0);
@@ -87,13 +88,13 @@ public class WaveReader {
         waveFile.byteRate = bb.getInt(8);
         waveFile.blockAlign = bb.getShort(12);
         waveFile.bitDepth = bb.getShort(14);
-        if (waveFile.audioFormat != 1) {
-            short extensibleSize = bb.getShort(16);
-            // TODO: Add fields from extra format data
-        }
+//        if (waveFile.audioFormat != 1) {
+//            // TODO: Add fields from extra format data
+//             short extensibleSize = bb.getShort(16);
+//        }
     }
 
-    private int readAudioData(WaveFile waveFile, InputStream inputStream) throws IOException {
+    private int readAudioData(WaveFile waveFile, InputStream inputStream) throws IOException, UnsupportedAudioFileException {
         byte[] dataBytes = new byte[waveFile.blockAlign];
         int bytesRead = 0;
 
@@ -122,11 +123,11 @@ public class WaveReader {
                         break;
                     case 4:
                         // TODO: Fix 32 bit - how is it represented in WAVE? -> Depends on additional format information (float or int32)
-                        throw new IOException("Unsupported bit rate: " + bytesPerChannel*8);
+                        throw new UnsupportedAudioFileException("Unsupported bit rate: " + bytesPerChannel*8);
                         //waveFile.samples[n][i] = (double)bb.getInt(index)/Integer.MAX_VALUE;
                         //break;
                     default:
-                        throw new IOException("Unsupported bit rate: " + bytesPerChannel*8);
+                        throw new UnsupportedAudioFileException("Unsupported bit rate: " + bytesPerChannel*8);
                 }
             }
         }
@@ -138,9 +139,8 @@ public class WaveReader {
         if(byteOrder == ByteOrder.LITTLE_ENDIAN) {
             ArrayUtils.reverse(bytes);
         }
-
         int value = (((bytes[0] & 0xFF) << 16) | ((bytes[1] & 0xFF) <<  8) | (bytes[2] & 0xFF));
-        // Fix sign
+        // 24 bit signed integer fix
         if ((value & 0x00800000) > 0) {
             return value | 0xFF000000;
         } else {
