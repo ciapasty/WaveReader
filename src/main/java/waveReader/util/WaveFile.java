@@ -1,3 +1,5 @@
+package waveReader.util;
+
 import org.json.JSONObject;
 
 import java.nio.ByteOrder;
@@ -66,13 +68,13 @@ public class WaveFile {
         return Math.abs(blockAvg / blockLength);
     }
 
-    public String toJSON(int waveformLength) {
+    public JSONObject toJSON(int waveformLength) {
         JSONObject jo = new JSONObject();
         jo.put("name", filename);
         jo.put("length", getDuration());
         jo.put("waveform", getWaveformSummary(waveformLength));
 
-        return jo.toString();
+        return jo;
     }
 
     @Override

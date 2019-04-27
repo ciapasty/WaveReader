@@ -1,3 +1,5 @@
+package waveReader.util;
+
 import org.apache.commons.lang3.ArrayUtils;
 
 import javax.sound.sampled.UnsupportedAudioFileException;
