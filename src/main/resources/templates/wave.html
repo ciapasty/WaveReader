@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" type="text/css" href="css/wave.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.min.js"></script>
+        <script src="scripts/waveform.js"></script>
+        <script src="scripts/audioPlayer.js"></script>
+        <script src="scripts/comments.js"></script>
+    </head>
+    <body>
+        <div class="main" id='main'>
+            <div class="controls">
+                <button id="playButton" class="play" onclick="playAudio()"></button>
+                <button id="playButton" class="stop" onclick="stopAudio()"></button>
+                <label id="rngVolume_label" for="rngVolume">Volume:</label>
+                <input type="range" oninput="setVolume(this.value)" id="rngVolume" min="0" max="1" step="0.01" value="1">
+            </div>
+            <div id="waveform"></div>
+            <div id="comments-micro" class="comments-micro"></div>
+            <div style="text-align: center">
+                <button onclick="addComment()">Add comment</button>
+            </div>
+            <div id="comments"></div>
+        </div>
+    </body>
+</html>
